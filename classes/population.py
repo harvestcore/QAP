@@ -1,12 +1,10 @@
 import uuid
 import random
+import sys
 
 from .chromosome import Chromosome
 
 class Population:
-    # Chromosome array
-    data = []
-
     # Number of chromosomes
     size = 0
 
@@ -25,13 +23,22 @@ class Population:
     # { ch: chromosome, fitness: its fitness value }
     fitness = []
     
-    def __init__(self, database, generations=100, seed=None):
+    def __init__(self, database, generations=100, mutation_probability=0.5, cross_probability=0.5, seed=None):
+        # Algorithm iterations.
+        self.iterations = 0
+
+        self.best_chromosome = { 'fitness': sys.maxsize }
+
         # Generations management.
         self.generations = generations
 
         # Database management + fetch data.
         self.database = database
         self.__fetch_data_from_database()
+
+        # Mutation and cross probabilities.
+        self.mutation_probability = mutation_probability
+        self.cross_probability = cross_probability
 
         # Seed management.
         self.seed = uuid.uuid4() if seed is None else uuid.UUID(seed)
@@ -78,57 +85,70 @@ class Population:
 
     def mutate_chromosomes(self):
         for ch in self.chromosomes:
-            ch.perform_mutation(random.uniform(0, 1))
+            ch.perform_mutation(self.mutation_probability)
 
     def reproduce_chromosomes(self):
-        # Possible best chromosomes.
-        pbc = self.size * self.best_chromosomes_ratio
+        if random.uniform(0, 1) < self.cross_probability:
+            # Possible best chromosomes.
+            pbc = self.size * self.best_chromosomes_ratio
 
-        # Ensure that the possible best chromosomes are at least 2.
-        pbc = int(pbc if pbc >= 2 else 2)
+            # Ensure that the possible best chromosomes are at least 2.
+            pbc = int(pbc if pbc >= 2 else 2)
 
-        # Array with the best chromosomes.
-        best_chs = self.fitness[:pbc]
+            # Array with the best chromosomes.
+            best_chs = self.fitness[:pbc]
 
-        # Add the first best chromosomes.
-        children = [
-            ch['ch'] for ch in best_chs
-        ]
+            # Add the first best chromosomes.
+            children = [
+                ch['ch'] for ch in best_chs
+            ]
 
-        for _ in range(self.size - pbc):
-            # Random split point.
-            split = random.randint(0, self.size - 1)
+            for _ in range(self.size - pbc):
+                # Random split point.
+                split = random.randint(0, self.size - 1)
 
-            # Get parents and join them.
-            parents = random.sample(best_chs, 2)
-            joined_genes = parents[0]['ch'].get_genes()[split:] + parents[0]['ch'].get_genes()[:split]
+                # Get parents and join them.
+                parents = random.sample(best_chs, 2)
+                joined_genes = parents[0]['ch'].get_genes()[split:] + parents[0]['ch'].get_genes()[:split]
 
-            # Child chromosome.
-            child = Chromosome(size=parents[0]['ch'].get_size(), genes=joined_genes)
+                # Child chromosome.
+                child = Chromosome(size=parents[0]['ch'].get_size(), genes=joined_genes)
 
-            # Add new children.
-            children.append(child)
+                # Add new children.
+                children.append(child)
 
-        self.chromosomes = children
+                # Assign new chromosomes.
+                self.chromosomes = children
 
-        return self.chromosomes
-
-    def get_best_chromosome(self):
+    def compute_best_chromosome(self):
         best = sorted(self.fitness, key=lambda f: f['fitness'])[0]
 
-        return {
-            'ch': best['ch'].get_genes(),
-            'fitness': best['fitness']
-        }
+        if best['fitness'] < self.best_chromosome['fitness']:
+            self.best_chromosome = {
+                'ch': best['ch'].get_genes(),
+                'fitness': best['fitness'],
+                'generation': self.iterations
+            }
+
+    def get_best_chromosome(self):
+        return self.best_chromosome
 
     def run(self):
         for _ in range(self.generations):
+            # Increment iterations
+            self.iterations += 1
+
+            # Compute algorithm.
             self.compute_all_chromosomes_fitness()
             self.reproduce_chromosomes()
             self.mutate_chromosomes()
+            self.compute_best_chromosome()
 
     def output(self):
         return {
+            'population_size': self.size,
+            'mutation_probability': self.mutation_probability,
+            'cross_probability': self.cross_probability,
             'generations': self.generations,
             'seed': str(self.seed),
             # 'chromosomes': [ ch.get_genes() for ch in self.chromosomes ],
