@@ -1,12 +1,16 @@
 import random
 
 class Chromosome:
-    def __init__(self, size, genes = []):
+    # size: size of the chromosome
+    # mutations: quantity of genes to be mutated
+    # genes
+    def __init__(self, size, gene_mutations=2, genes = []):
         self.size = size
+        self.gene_mutations = gene_mutations
             
         self.genes = []
 
-        if len(genes) == 0:
+        if genes is None or len(genes) == 0:
             for _ in range(self.size):
                 self.genes.append(random.randint(0, self.size - 1))
         else:
@@ -26,13 +30,14 @@ class Chromosome:
             prob = random.uniform(0, 1)
 
             if prob <= probability:
-                for i in range(self.size):
-                    mutatedGen = random.randint(0, self.size - 1)
+                for _ in range(self.gene_mutations):
+                    gen_to_mutate = random.randint(0, self.size - 1)
+                    mutatation = random.randint(0, self.size - 1)
 
-                    while mutatedGen == self.genes[i]:
-                        mutatedGen = random.randint(0, self.size - 1)
+                    while mutatation == self.genes[gen_to_mutate]:
+                        mutatation = random.randint(0, self.size - 1)
 
-                    self.genes[i] = mutatedGen
+                    self.genes[gen_to_mutate] = mutatation
     
     def output(self):
         return {

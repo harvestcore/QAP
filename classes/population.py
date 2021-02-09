@@ -23,7 +23,7 @@ class Population:
     # { ch: chromosome, fitness: its fitness value }
     fitness = []
     
-    def __init__(self, database, generations=100, mutation_probability=0.5, cross_probability=0.5, seed=None):
+    def __init__(self, database, generations=100, mutation_probability=0.5, cross_probability=0.5, gene_mutations=2, seed=None):
         # Algorithm iterations.
         self.iterations = 0
 
@@ -40,12 +40,15 @@ class Population:
         self.mutation_probability = mutation_probability
         self.cross_probability = cross_probability
 
+        # Genes to be mutated
+        self.gene_mutations = gene_mutations
+
         # Seed management.
         self.seed = uuid.uuid4() if seed is None else uuid.UUID(seed)
         random.seed(self.seed)
 
         # Generate first chromosomes.
-        self.chromosomes = [Chromosome(size=self.size) for _ in range(self.size)]
+        self.chromosomes = [Chromosome(size=self.size, gene_mutations=self.gene_mutations) for _ in range(self.size)]
 
     def __fetch_data_from_database(self):
         with open(self.database) as file:
@@ -112,7 +115,11 @@ class Population:
                 joined_genes = parents[0]['ch'].get_genes()[split:] + parents[0]['ch'].get_genes()[:split]
 
                 # Child chromosome.
-                child = Chromosome(size=parents[0]['ch'].get_size(), genes=joined_genes)
+                child = Chromosome(
+                    size=parents[0]['ch'].get_size(),
+                    genes=joined_genes,
+                    gene_mutations=self.gene_mutations
+                )
 
                 # Add new children.
                 children.append(child)
