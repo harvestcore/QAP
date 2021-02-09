@@ -1,12 +1,16 @@
-import uuid
 import random
 import sys
+import time
+import uuid
 
 from .chromosome import Chromosome
 
 VARIANTS = ['standard', 'lamarckian', 'baldwinian']
 
 class Population:
+    # Run time.
+    run_time = 0
+
     # Number of chromosomes
     size = 0
 
@@ -16,16 +20,22 @@ class Population:
     # Flows and distances
     flows = []
     distances = []
-
-    # Ratio of best elements to be taken in mind when reproducing
-    best_chromosomes_ratio = 0.1
     
     # Array of dictionaries.
     # Each dict contains:
     # { ch: chromosome, fitness: its fitness value }
     fitness = []
     
-    def __init__(self, database, variant='standard', generations=100, mutation_probability=0.5, cross_probability=0.5, gene_mutations=2, seed=None):
+    def __init__(self,
+        database,
+        variant='standard',
+        generations=100,
+        mutation_probability=0.5,
+        cross_probability=0.5,
+        gene_mutations=2,
+        best_chromosomes_ratio=0.1,
+        seed=None
+    ):
         # Algorithm iterations.
         self.iterations = 0
 
@@ -47,6 +57,9 @@ class Population:
         # Genes to be mutated
         self.gene_mutations = gene_mutations
 
+        # Ratio of best elements to be taken in mind when reproducing
+        self.best_chromosomes_ratio = best_chromosomes_ratio
+
         # Seed management.
         self.seed = uuid.uuid4() if seed is None else uuid.UUID(seed)
         random.seed(self.seed)
@@ -60,23 +73,47 @@ class Population:
             self.size = int(content[0].strip())
 
             for i in range(2, self.size + 2):
-                line = content[i].replace('\n', '')
+                line = content[i].strip().replace('\n', '')
                 splitted = list(filter(None, line.split(' ')))
                 self.flows.append([int(val.replace('\n', '')) for val in splitted])
 
             for i in range(self.size + 3, (self.size * 2) + 3):
-                line = content[i].replace('\n', '')
+                line = content[i].strip().replace('\n', '')
                 splitted = list(filter(None, line.split(' ')))
                 self.distances.append([int(val.replace('\n', '')) for val in splitted])
 
     def __compute_fitness_by_chromosome(self, chromosome):
-        fitness = 0.0
+        fitness = 0
         
-        for i in range(self.size):
-            for j in range(self.size):
-                fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
+        if self.variant == 'standard':
+            for i in range(self.size):
+                for j in range(self.size):
+                    fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
+        
+        elif self.variant == 'baldwinian':
+            for i in range(self.size):
+                checked_j = []
+                for j in range(self.size):
+                    best = self.__nearest_neighbour(chromosome.get_gen(i), checked_j)
+                    checked_j.append(best)
+                    fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][best]
 
         return fitness
+
+    def __nearest_neighbour(self, i, checked):
+        row = self.distances[i]
+
+        best = sys.maxsize
+        bbest = sys.maxsize
+
+        for j, value in enumerate(row):
+            if j not in checked and value < best:
+                best = j
+                bbest = value
+
+        # print(bbest, best, " ## ", row)
+        return best
+        
 
     def compute_all_chromosomes_fitness(self):
         # Compute the fitness of all chromosomes.
@@ -116,7 +153,21 @@ class Population:
 
                 # Get parents and join them.
                 parents = random.sample(best_chs, 2)
-                joined_genes = parents[0]['ch'].get_genes()[split:] + parents[0]['ch'].get_genes()[:split]
+                
+                # Add first genes
+                joined_genes = parents[0]['ch'].get_genes()[split:]
+                
+                genes_b = parents[0]['ch'].get_genes()[:split]
+
+                for i in range(len(genes_b)):
+                    if genes_b[i] not in joined_genes:
+                        joined_genes.append(genes_b[i])
+                    else:
+                        r_gen = random.randint(0, self.size - 1)
+                        while r_gen in genes_b or r_gen in genes_b:
+                            r_gen = random.randint(0, self.size - 1)
+                        
+                        joined_genes.append(r_gen)
 
                 # Child chromosome.
                 child = Chromosome(
@@ -145,7 +196,9 @@ class Population:
         return self.best_chromosome
 
     def run(self):
-        for _ in range(self.generations):
+        start_time = time.time()
+
+        for it in range(self.generations):
             # Increment iterations.
             self.iterations += 1
 
@@ -154,16 +207,25 @@ class Population:
             self.reproduce_chromosomes()
             self.mutate_chromosomes()
 
+            # If last iteration, compute the final fitness.
+            if it == self.generations - 1:                
+                self.compute_all_chromosomes_fitness()
+
             # Update the best chromosome.
             self.compute_best_chromosome()
 
+        self.run_time = round(time.time() - start_time, 2)
+
     def json(self):
         return {
+            'database': self.database,
+            'variant': self.variant,
             'population_size': self.size,
             'mutation_probability': self.mutation_probability,
             'cross_probability': self.cross_probability,
             'generations': self.generations,
             'seed': str(self.seed),
+            'run_time': self.run_time,
             # 'chromosomes': [ ch.get_genes() for ch in self.chromosomes ],
             # 'fitness': [ f['fitness'] for f in self.fitness ],
             'best_chromosome': self.get_best_chromosome()

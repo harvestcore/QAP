@@ -11,8 +11,10 @@ class Chromosome:
         self.genes = []
 
         if genes is None or len(genes) == 0:
-            for _ in range(self.size):
-                self.genes.append(random.randint(0, self.size - 1))
+            while len(self.genes) != self.size:
+                gen = random.randint(0, self.size - 1)
+                if gen not in self.genes:
+                    self.genes.append(gen)
         else:
             self.genes = genes
 
@@ -31,13 +33,14 @@ class Chromosome:
 
             if prob <= probability:
                 for _ in range(self.gene_mutations):
-                    gen_to_mutate = random.randint(0, self.size - 1)
-                    mutatation = random.randint(0, self.size - 1)
+                    gen_to_mutate_a = random.randint(0, self.size - 1)
+                    gen_to_mutate_b = random.randint(0, self.size - 1)
 
-                    while mutatation == self.genes[gen_to_mutate]:
-                        mutatation = random.randint(0, self.size - 1)
+                    while gen_to_mutate_a == gen_to_mutate_b:
+                        gen_to_mutate_a = random.randint(0, self.size - 1)
 
-                    self.genes[gen_to_mutate] = mutatation
+                    # Swap genes
+                    self.genes[gen_to_mutate_a], self.genes[gen_to_mutate_b] = self.genes[gen_to_mutate_b], self.genes[gen_to_mutate_a]
     
     def json(self):
         return {
