@@ -4,7 +4,7 @@ import sys
 
 from .chromosome import Chromosome
 
-VARIANTS = ['standard', 'lamarkian', 'baldwinian']
+VARIANTS = ['standard', 'lamarckian', 'baldwinian']
 
 class Population:
     # Number of chromosomes
@@ -76,7 +76,7 @@ class Population:
             for j in range(self.size):
                 fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
 
-        return -fitness
+        return fitness
 
     def compute_all_chromosomes_fitness(self):
         # Compute the fitness of all chromosomes.
@@ -146,13 +146,15 @@ class Population:
 
     def run(self):
         for _ in range(self.generations):
-            # Increment iterations
+            # Increment iterations.
             self.iterations += 1
 
             # Compute algorithm.
             self.compute_all_chromosomes_fitness()
             self.reproduce_chromosomes()
             self.mutate_chromosomes()
+
+            # Update the best chromosome.
             self.compute_best_chromosome()
 
     def json(self):
