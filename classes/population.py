@@ -202,6 +202,10 @@ class Population:
             # Increment iterations.
             self.iterations += 1
 
+            # If the variant 
+            if self.variant == 'lamarckian':
+                continue
+
             # Compute algorithm.
             self.compute_all_chromosomes_fitness()
             self.reproduce_chromosomes()
@@ -215,6 +219,36 @@ class Population:
             self.compute_best_chromosome()
 
         self.run_time = round(time.time() - start_time, 2)
+
+    def greedy_transposition(self, chromosome):
+        current_genes = chromosome.get_genes()
+
+        while True:
+            best = current_genes
+            for i in range(self.size):
+                for j in range(i + 1, self.size, 1):
+                    copy = current_genes
+                    copy[i], copy[j] = copy[j], copy[i]
+
+                    # Compute the fitness for the transposited chromosome.
+                    transposition_fitnes = self.__compute_fitness_by_chromosome(
+                        Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=copy)
+                    )
+                    
+                    # Compute the fitness for the current chromosome.
+                    transposition_current_genes = self.__compute_fitness_by_chromosome(
+                        Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=current_genes)
+                    )
+
+                    # Update the current genes if the transposition fitness is lower than the current one.
+                    # This means that the transposited chromosome is better.
+                    if transposition_current_genes < transposition_fitnes:
+                        current_genes = copy
+
+            if best == current_genes:
+                break
+
+    ########################################################################
 
     def json(self):
         return {
