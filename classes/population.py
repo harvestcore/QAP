@@ -4,6 +4,8 @@ import sys
 
 from .chromosome import Chromosome
 
+VARIANTS = ['standard', 'lamarkian', 'baldwinian']
+
 class Population:
     # Number of chromosomes
     size = 0
@@ -23,9 +25,11 @@ class Population:
     # { ch: chromosome, fitness: its fitness value }
     fitness = []
     
-    def __init__(self, database, generations=100, mutation_probability=0.5, cross_probability=0.5, gene_mutations=2, seed=None):
+    def __init__(self, database, variant='standard', generations=100, mutation_probability=0.5, cross_probability=0.5, gene_mutations=2, seed=None):
         # Algorithm iterations.
         self.iterations = 0
+
+        self.variant = variant if variant in VARIANTS else 'regular'
 
         self.best_chromosome = { 'fitness': sys.maxsize }
 
@@ -151,7 +155,7 @@ class Population:
             self.mutate_chromosomes()
             self.compute_best_chromosome()
 
-    def output(self):
+    def json(self):
         return {
             'population_size': self.size,
             'mutation_probability': self.mutation_probability,
@@ -162,4 +166,7 @@ class Population:
             # 'fitness': [ f['fitness'] for f in self.fitness ],
             'best_chromosome': self.get_best_chromosome()
         }
+
+    def __str__(self):
+        return str(self.json())
 

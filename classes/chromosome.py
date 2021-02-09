@@ -39,9 +39,12 @@ class Chromosome:
 
                     self.genes[gen_to_mutate] = mutatation
     
-    def output(self):
+    def json(self):
         return {
             'seed': self.seed,
             'genes': self.genes
         }
+
+    def __str__(self):
+        return str(self.json())
                 
