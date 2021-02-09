@@ -242,7 +242,7 @@ class Population:
 
                     # Update the current genes if the transposition fitness is lower than the current one.
                     # This means that the transposited chromosome is better.
-                    if transposition_current_genes < transposition_fitnes:
+                    if transposition_fitnes < transposition_current_genes:
                         current_genes = copy
 
             if best == current_genes:
