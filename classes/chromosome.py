@@ -41,7 +41,8 @@ class Chromosome:
     
     def json(self):
         return {
-            'seed': self.seed,
+            'size': self.size,
+            'gene_mutations': self.gene_mutations,
             'genes': self.genes
         }
 
