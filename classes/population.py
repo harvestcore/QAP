@@ -85,52 +85,38 @@ class Population:
     def __compute_fitness_by_chromosome(self, chromosome):
         fitness = 0
 
-        if self.variant == 'baldwinian':
-            for i in range(self.size):
-                checked_j = []
-                for j in range(self.size):
-                    best = self.__nearest_neighbour(chromosome.get_gen(i), checked_j)
-                    checked_j.append(best)
-                    fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][best]
-        else:
-            # Variant == 'standard'
-            for i in range(self.size):
-                for j in range(self.size):
-                    fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
+        for i in range(self.size):
+            for j in range(self.size):
+                fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
 
         return fitness
-
-    def __nearest_neighbour(self, i, checked):
-        row = self.distances[i]
-
-        best = sys.maxsize
-        bbest = sys.maxsize
-
-        for j, value in enumerate(row):
-            if j not in checked and value < best:
-                best = j
-                bbest = value
-
-        # print(bbest, best, " ## ", row)
-        return best
         
+    # Compute the fitness of all chromosomes.
+    def compute_all_chromosomes_fitness(self):    
+        fitness = []
 
-    def compute_all_chromosomes_fitness(self):
-        # Compute the fitness of all chromosomes.
-        fitness = [{
+        for ch in self.chromosomes:
+            # If variant is baldwinian get the greedy transposition of this chromosome.
+            if self.variant == 'baldwinian':
+                ch = self.greedy_transposition(ch)
+            
+            # Then compute the regular fitness.
+            fitness.append({
                 'ch': ch,
                 'fitness': self.__compute_fitness_by_chromosome(ch)
-            } for ch in self.chromosomes]
+            })
 
         # Order the chromosomes by its fitness.
         self.fitness = sorted(fitness, key=lambda f: f['fitness'])
 
         return self.fitness
 
+    # Perform the chromosomes mutation.
     def mutate_chromosomes(self):
         for ch in self.chromosomes:
             ch.perform_mutation(self.mutation_probability)
 
+    # Reproduction of the chromosomes.
     def reproduce_chromosomes(self):
         if random.uniform(0, 1) < self.cross_probability:
             # Possible best chromosomes.
@@ -182,6 +168,7 @@ class Population:
                 # Assign new chromosomes.
                 self.chromosomes = children
 
+    # Checks all the current chromosomes fitness and updates the best one.
     def compute_best_chromosome(self):
         best = sorted(self.fitness, key=lambda f: f['fitness'])[0]
 
@@ -192,6 +179,7 @@ class Population:
                 'generation': self.iterations
             }
 
+    # Returns the best chromosome.
     def get_best_chromosome(self):
         return self.best_chromosome
 
@@ -200,10 +188,10 @@ class Population:
     ########################################################################
 
     # Returns the greedy transposition of the current chromosome.
+    # It returns the first best transposition.
     def greedy_transposition(self, chromosome):
         current_genes = chromosome.get_genes()
         out = False
-
 
         for i in range(self.size):
             for j in range(i + 1, self.size, 1):
@@ -233,7 +221,7 @@ class Population:
 
         return Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=current_genes)
 
-    # "Train" the chromosomes, aka find the best transpositions of them.
+    # "Train" the chromosomes, aka find the first best transposition of them.
     def greedy_train(self):
         for ch in self.chromosomes:
             ch = self.greedy_transposition(ch)
