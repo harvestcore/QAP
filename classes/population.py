@@ -84,19 +84,19 @@ class Population:
 
     def __compute_fitness_by_chromosome(self, chromosome):
         fitness = 0
-        
-        if self.variant == 'standard':
-            for i in range(self.size):
-                for j in range(self.size):
-                    fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
-        
-        elif self.variant == 'baldwinian':
+
+        if self.variant == 'baldwinian':
             for i in range(self.size):
                 checked_j = []
                 for j in range(self.size):
                     best = self.__nearest_neighbour(chromosome.get_gen(i), checked_j)
                     checked_j.append(best)
                     fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][best]
+        else:
+            # Variant == 'standard'
+            for i in range(self.size):
+                for j in range(self.size):
+                    fitness += self.flows[i][j] * self.distances[chromosome.get_gen(i)][chromosome.get_gen(j)]
 
         return fitness
 
@@ -195,6 +195,53 @@ class Population:
     def get_best_chromosome(self):
         return self.best_chromosome
 
+    ########################################################################
+    ######################### GREEDY METHODS ###############################
+    ########################################################################
+
+    # Returns the greedy transposition of the current chromosome.
+    def greedy_transposition(self, chromosome):
+        current_genes = chromosome.get_genes()
+        out = False
+
+
+        for i in range(self.size):
+            for j in range(i + 1, self.size, 1):
+                copy = current_genes.copy()
+                copy[i], copy[j] = copy[j], copy[i]
+
+                # Compute the fitness for the transposited chromosome.
+                transposition_fitnes = self.__compute_fitness_by_chromosome(
+                    Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=copy)
+                )
+                
+                # Compute the fitness for the current chromosome.
+                transposition_current_genes = self.__compute_fitness_by_chromosome(
+                    Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=current_genes)
+                )
+
+                # Update the current genes if the transposition fitness is lower than the current one.
+                # This means that the transposited chromosome is better.
+                if transposition_fitnes < transposition_current_genes:
+                    current_genes = copy.copy()
+                    out = True
+
+                if out:
+                    break
+            if out:
+                break
+
+        return Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=current_genes)
+
+    # "Train" the chromosomes, aka find the best transpositions of them.
+    def greedy_train(self):
+        for ch in self.chromosomes:
+            ch = self.greedy_transposition(ch)
+
+    ########################################################################
+    ################################ RUN ###################################
+    ########################################################################
+
     def run(self):
         start_time = time.time()
 
@@ -202,9 +249,9 @@ class Population:
             # Increment iterations.
             self.iterations += 1
 
-            # If the variant 
+            # If the variant is lamarkian
             if self.variant == 'lamarckian':
-                continue
+                self.greedy_train()
 
             # Compute algorithm.
             self.compute_all_chromosomes_fitness()
@@ -219,34 +266,6 @@ class Population:
             self.compute_best_chromosome()
 
         self.run_time = round(time.time() - start_time, 2)
-
-    def greedy_transposition(self, chromosome):
-        current_genes = chromosome.get_genes()
-
-        while True:
-            best = current_genes
-            for i in range(self.size):
-                for j in range(i + 1, self.size, 1):
-                    copy = current_genes
-                    copy[i], copy[j] = copy[j], copy[i]
-
-                    # Compute the fitness for the transposited chromosome.
-                    transposition_fitnes = self.__compute_fitness_by_chromosome(
-                        Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=copy)
-                    )
-                    
-                    # Compute the fitness for the current chromosome.
-                    transposition_current_genes = self.__compute_fitness_by_chromosome(
-                        Chromosome(size=self.size, gene_mutations=self.gene_mutations, genes=current_genes)
-                    )
-
-                    # Update the current genes if the transposition fitness is lower than the current one.
-                    # This means that the transposited chromosome is better.
-                    if transposition_fitnes < transposition_current_genes:
-                        current_genes = copy
-
-            if best == current_genes:
-                break
 
     ########################################################################
 
