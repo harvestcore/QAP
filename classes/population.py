@@ -253,6 +253,8 @@ class Population:
             # Update the best chromosome.
             self.compute_best_chromosome()
 
+            print(self.get_best_chromosome())
+
         self.run_time = round(time.time() - start_time, 2)
 
     ########################################################################
