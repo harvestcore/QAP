@@ -11,7 +11,7 @@ class Population:
     # Run time.
     run_time = 0
 
-    # Number of chromosomes
+    # Number of genes by chromosome
     size = 0
 
     # Path where the data is stored
@@ -28,6 +28,7 @@ class Population:
     
     def __init__(self,
         database,
+        population_size=10,
         variant='standard',
         generations=100,
         mutation_probability=0.5,
@@ -38,6 +39,8 @@ class Population:
     ):
         # Algorithm iterations.
         self.iterations = 0
+
+        self.population_size = population_size
 
         self.variant = variant if variant in VARIANTS else 'regular'
 
@@ -65,7 +68,7 @@ class Population:
         random.seed(self.seed)
 
         # Generate first chromosomes.
-        self.chromosomes = [Chromosome(size=self.size, gene_mutations=self.gene_mutations) for _ in range(self.size)]
+        self.chromosomes = [Chromosome(size=self.size, gene_mutations=self.gene_mutations) for _ in range(self.population_size)]
 
     def __fetch_data_from_database(self):
         with open(self.database) as file:
@@ -96,14 +99,18 @@ class Population:
         fitness = []
 
         for ch in self.chromosomes:
+            fit = 0
             # If variant is baldwinian get the greedy transposition of this chromosome.
             if self.variant == 'baldwinian':
-                ch = self.greedy_transposition(ch)
+                copy = self.greedy_transposition(ch)
+                fit = self.__compute_fitness_by_chromosome(copy)
+            else:
+                fit = self.__compute_fitness_by_chromosome(ch)
             
             # Then compute the regular fitness.
             fitness.append({
                 'ch': ch,
-                'fitness': self.__compute_fitness_by_chromosome(ch)
+                'fitness': fit
             })
 
         # Order the chromosomes by its fitness.
@@ -120,7 +127,7 @@ class Population:
     def reproduce_chromosomes(self):
         if random.uniform(0, 1) < self.cross_probability:
             # Possible best chromosomes.
-            pbc = self.size * self.best_chromosomes_ratio
+            pbc = self.population_size * self.best_chromosomes_ratio
 
             # Ensure that the possible best chromosomes are at least 2.
             pbc = int(pbc if pbc >= 2 else 2)
@@ -133,9 +140,9 @@ class Population:
                 ch['ch'] for ch in best_chs
             ]
 
-            for _ in range(self.size - pbc):
+            for _ in range(self.population_size - pbc):
                 # Random split point.
-                split = random.randint(0, self.size - 1)
+                split = random.randint(0, self.population_size - 1)
 
                 # Get parents and join them.
                 parents = random.sample(best_chs, 2)
@@ -150,7 +157,7 @@ class Population:
                         joined_genes.append(genes_b[i])
                     else:
                         r_gen = random.randint(0, self.size - 1)
-                        while r_gen in genes_b or r_gen in genes_b:
+                        while r_gen in genes_b or r_gen in joined_genes:
                             r_gen = random.randint(0, self.size - 1)
                         
                         joined_genes.append(r_gen)
@@ -253,7 +260,7 @@ class Population:
             # Update the best chromosome.
             self.compute_best_chromosome()
 
-            print(self.get_best_chromosome())
+            # print(self.get_best_chromosome())
 
         self.run_time = round(time.time() - start_time, 2)
 
@@ -263,7 +270,8 @@ class Population:
         return {
             'database': self.database,
             'variant': self.variant,
-            'population_size': self.size,
+            'chromosome_size': self.size,
+            'population_size': self.population_size,
             'mutation_probability': self.mutation_probability,
             'cross_probability': self.cross_probability,
             'generations': self.generations,
