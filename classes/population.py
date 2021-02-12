@@ -107,7 +107,6 @@ class Population:
             else:
                 fit = self.__compute_fitness_by_chromosome(ch)
             
-            # Then compute the regular fitness.
             fitness.append({
                 'ch': ch,
                 'fitness': fit
@@ -230,8 +229,8 @@ class Population:
 
     # "Train" the chromosomes, aka find the first best transposition of them.
     def greedy_train(self):
-        for ch in self.chromosomes:
-            ch = self.greedy_transposition(ch)
+        for i in range(len(self.chromosomes)):
+            self.chromosomes[i] = self.greedy_transposition(self.chromosomes[i])
 
     ########################################################################
     ################################ RUN ###################################
